@@ -111,7 +111,11 @@ end
 do
     local var_methods = {
         method = ngx.req.get_method,
-        cookie = function () return ck:new() end
+        cookie = function ()
+            if ngx.var.http_cookie then
+                return ck:new()
+            end
+        end
     }
 
     local ngx_var_names = {
@@ -128,6 +132,8 @@ do
         upstream_no_cache          = true,
         upstream_cache_key         = true,
         upstream_cache_bypass      = true,
+
+        var_x_forwarded_proto = true,
     }
 
     local mt = {
@@ -151,7 +157,7 @@ do
                 if cookie then
                     local err
                     val, err = cookie:get(sub_str(key, 8))
-                    if not val then
+                    if err then
                         log.warn("failed to fetch cookie value by key: ",
                                  key, " error: ", err)
                     end
@@ -181,6 +187,12 @@ do
 
             elseif key == "service_name" then
                 val = ngx.ctx.api_ctx and ngx.ctx.api_ctx.service_name
+
+            elseif key == "balancer_ip" then
+                val = ngx.ctx.api_ctx and ngx.ctx.api_ctx.balancer_ip
+
+            elseif key == "balancer_port" then
+                val = ngx.ctx.api_ctx and ngx.ctx.api_ctx.balancer_port
 
             else
                 val = get_var(key, t._request)

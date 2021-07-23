@@ -47,27 +47,10 @@ local function check_conf(id, conf, need_id)
 
     core.log.info("schema: ", core.json.delay_encode(core.schema.ssl))
     core.log.info("conf  : ", core.json.delay_encode(conf))
-    local ok, err = core.schema.check(core.schema.ssl, conf)
-    if not ok then
-        return nil, {error_msg = "invalid configuration: " .. err}
-    end
 
-    local ok, err = apisix_ssl.validate(conf.cert, conf.key)
+    local ok, err = apisix_ssl.check_ssl_conf(false, conf)
     if not ok then
         return nil, {error_msg = err}
-    end
-
-    local numcerts = conf.certs and #conf.certs or 0
-    local numkeys = conf.keys and #conf.keys or 0
-    if numcerts ~= numkeys then
-        return nil, {error_msg = "mismatched number of certs and keys"}
-    end
-
-    for i = 1, numcerts do
-        local ok, err = apisix_ssl.validate(conf.certs[i], conf.keys[i])
-        if not ok then
-            return nil, {error_msg = "failed to handle cert-key pair[" .. i .. "]: " .. err}
-        end
     end
 
     return need_id and id or true
@@ -123,6 +106,7 @@ function _M.get(id)
         res.body.node.value.key = nil
     end
 
+    utils.fix_count(res.body, id)
     return res.status, res.body
 end
 
@@ -143,9 +127,8 @@ function _M.post(id, conf)
     end
 
     local key = "/ssl"
-    -- core.log.info("key: ", key)
     utils.inject_timestamp(conf)
-    local res, err = core.etcd.push("/ssl", conf)
+    local res, err = core.etcd.push(key, conf)
     if not res then
         core.log.error("failed to post ssl[", key, "]: ", err)
         return 500, {error_msg = err}

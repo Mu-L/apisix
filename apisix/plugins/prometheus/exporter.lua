@@ -206,7 +206,7 @@ local function set_modify_index(key, items, items_ver, global_max_index)
     if items_ver and items then
         for _, item in ipairs(items) do
             if type(item) == "table" then
-                local modify_index = item.modifiedIndex
+                local modify_index = item.orig_modifiedIndex or item.modifiedIndex
                 if modify_index > max_idx then
                     max_idx = modify_index
                 end
@@ -308,7 +308,10 @@ function _M.collect()
                            "processing metrics endpoint: ", err)
         end
 
-        local res, _ = config:getkey("/routes")
+        -- Because request any key from etcd will return the "X-Etcd-Index".
+        -- A non-existed key is preferred because it doesn't return too much data.
+        -- So use phantom key to get etcd index.
+        local res, _ = config:getkey("/phantomkey")
         if res and res.headers then
             clear_tab(key_values)
             -- global max

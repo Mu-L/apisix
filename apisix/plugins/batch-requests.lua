@@ -26,6 +26,20 @@ local str_lower = string.lower
 
 local plugin_name = "batch-requests"
 
+local default_uri = "/apisix/batch-requests"
+
+local attr_schema = {
+    type = "object",
+    properties = {
+        uri = {
+            type = "string",
+            description = "uri for batch-requests",
+            default = default_uri
+        }
+    },
+    additionalProperties = false,
+}
+
 local schema = {
     type = "object",
     additionalProperties = false,
@@ -44,6 +58,9 @@ local metadata_schema = {
     },
     additionalProperties = false,
 }
+
+local method_schema = core.table.clone(core.schema.method_schema)
+method_schema.default = "GET"
 
 local req_schema = {
     type = "object",
@@ -73,13 +90,7 @@ local req_schema = {
                         enum = {1.0, 1.1},
                         default = 1.1,
                     },
-                    method = {
-                        description = "HTTP method",
-                        type = "string",
-                        enum = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD",
-                                "OPTIONS", "CONNECT", "TRACE"},
-                        default = "GET"
-                    },
+                    method = method_schema,
                     path = {
                         type = "string",
                         minLength = 1,
@@ -111,15 +122,15 @@ local _M = {
     name = plugin_name,
     schema = schema,
     metadata_schema = metadata_schema,
+    attr_schema = attr_schema,
 }
 
 
-function _M.check_schema(conf)
-    local ok, err = core.schema.check(schema, conf)
-    if not ok then
-        return false, err
+function _M.check_schema(conf, schema_type)
+    if schema_type == core.schema.TYPE_METADATA then
+        return core.schema.check(metadata_schema, conf)
     end
-    return true
+    return core.schema.check(schema, conf)
 end
 
 
@@ -267,10 +278,15 @@ end
 
 
 function _M.api()
+    local uri = default_uri
+    local attr = plugin.plugin_attr(plugin_name)
+    if attr then
+        uri = attr.uri or default_uri
+    end
     return {
         {
             methods = {"POST"},
-            uri = "/apisix/batch-requests",
+            uri = uri,
             handler = batch_requests,
         }
     }

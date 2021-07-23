@@ -1,11 +1,6 @@
 {
-  "version": 2.5,
+  "version": 2.7,
   "sidebar": [
-    {
-      "type": "link",
-      "label": "Apache APISIX",
-      "href" : "https://apisix.apache.org/docs/apisix/getting-started"
-    },
     {
       "type": "category",
       "label": "Architecture Design",
@@ -43,7 +38,10 @@
             "plugins/serverless",
             "plugins/redirect",
             "plugins/echo",
-            "plugins/server-info"
+            "plugins/gzip",
+            "plugins/server-info",
+            "plugins/ext-plugin-pre-req",
+            "plugins/ext-plugin-post-req"
           ]
         },
         {
@@ -76,6 +74,7 @@
             "plugins/cors",
             "plugins/uri-blocker",
             "plugins/ip-restriction",
+            "plugins/ua-restriction",
             "plugins/referer-restriction",
             "plugins/consumer-restriction"
           ]
@@ -92,7 +91,8 @@
             "plugins/proxy-mirror",
             "plugins/api-breaker",
             "plugins/traffic-split",
-            "plugins/request-id"
+            "plugins/request-id",
+            "plugins/client-control"
           ]
         },
         {
@@ -158,6 +158,7 @@
             "discovery",
             "discovery/dns",
             "discovery/consul_kv",
+            "discovery/nacos",
             "discovery/eureka"
           ]
         },
@@ -187,11 +188,31 @@
         },
         {
           "type": "doc",
-          "id": "https"
+          "id": "certificate"
+        },
+        {
+          "type": "doc",
+          "id": "batch-processor"
         },
         {
           "type": "doc",
           "id": "benchmark"
+        },
+        {
+          "type": "doc",
+          "id": "install-dependencies"
+        },
+        {
+          "type": "doc",
+          "id": "plugin-develop"
+        },
+        {
+          "type": "doc",
+          "id": "external-plugin"
+        },
+        {
+          "type": "doc",
+          "id": "plugin-interceptors"
         },
         {
           "type": "link",
@@ -200,7 +221,19 @@
         },
         {
           "type": "doc",
+          "id": "aws"
+        },
+        {
+          "type": "doc",
+          "id": "mtls"
+        },
+        {
+          "type": "doc",
           "id": "debug-function"
+        },
+        {
+          "type": "doc",
+          "id": "profile"
         }
       ]
     },

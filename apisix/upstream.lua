@@ -19,6 +19,7 @@ local core = require("apisix.core")
 local discovery = require("apisix.discovery.init").discovery
 local upstream_util = require("apisix.utils.upstream")
 local apisix_ssl = require("apisix.ssl")
+local balancer = require("ngx.balancer")
 local error = error
 local tostring = tostring
 local ipairs = ipairs
@@ -34,7 +35,7 @@ if ok then
     set_upstream_tls_client_param = apisix_ngx_upstream.set_cert_and_key
 else
     set_upstream_tls_client_param = function ()
-        return nil, "need to build APISIX-Openresty to support upstream mTLS"
+        return nil, "need to build APISIX-OpenResty to support upstream mTLS"
     end
 end
 
@@ -214,8 +215,7 @@ end
 
 function _M.set_by_route(route, api_ctx)
     if api_ctx.upstream_conf then
-        core.log.warn("upstream node has been specified, ",
-                      "cannot be set repeatedly")
+        -- upstream_conf has been set by traffic-split plugin
         return
     end
 
@@ -235,7 +235,8 @@ function _M.set_by_route(route, api_ctx)
 
         local dis = discovery[up_conf.discovery_type]
         if not dis then
-            return 500, "discovery " .. up_conf.discovery_type .. " is uninitialized"
+            local err = "discovery " .. up_conf.discovery_type .. " is uninitialized"
+            return 500, err
         end
 
         local new_nodes, err = dis.nodes(up_conf.service_name)
@@ -245,6 +246,11 @@ function _M.set_by_route(route, api_ctx)
 
         local same = upstream_util.compare_upstream_node(up_conf, new_nodes)
         if not same then
+            local pass, err = core.schema.check(core.schema.discovery_nodes, new_nodes)
+            if not pass then
+                return HTTP_CODE_UPSTREAM_UNAVAILABLE, "invalid nodes format: " .. err
+            end
+
             up_conf.nodes = new_nodes
             local new_up_conf = core.table.clone(up_conf)
             core.log.info("discover new upstream from ", up_conf.service_name, ", type ",
@@ -291,7 +297,8 @@ function _M.set_by_route(route, api_ctx)
         api_ctx.up_checker = checker
     end
 
-    if up_conf.scheme == "https" and up_conf.tls then
+    local scheme = up_conf.scheme
+    if (scheme == "https" or scheme == "grpcs") and up_conf.tls then
         -- the sni here is just for logging
         local sni = api_ctx.var.upstream_host
         local cert, err = apisix_ssl.fetch_cert(sni, up_conf.tls.client_cert)
@@ -304,13 +311,30 @@ function _M.set_by_route(route, api_ctx)
             return 503, err
         end
 
+        if scheme == "grpcs" then
+            api_ctx.upstream_grpcs_cert = cert
+            api_ctx.upstream_grpcs_key = key
+        else
+            local ok, err = set_upstream_tls_client_param(cert, key)
+            if not ok then
+                return 503, err
+            end
+        end
+    end
+
+    return
+end
+
+
+function _M.set_grpcs_upstream_param(ctx)
+    if ctx.upstream_grpcs_cert then
+        local cert = ctx.upstream_grpcs_cert
+        local key = ctx.upstream_grpcs_key
         local ok, err = set_upstream_tls_client_param(cert, key)
         if not ok then
             return 503, err
         end
     end
-
-    return
 end
 
 
@@ -367,7 +391,7 @@ local function check_upstream_conf(in_dp, conf)
     end
 
     if conf.pass_host == "node" and conf.nodes and
-        core.table.nkeys(conf.nodes) ~= 1
+        not balancer.recreate_request and core.table.nkeys(conf.nodes) ~= 1
     then
         return false, "only support single node for `node` mode currently"
     end

@@ -51,7 +51,7 @@ local function check_conf(id, conf, need_id)
     conf.id = id
 
     core.log.info("schema: ", core.json.delay_encode(core.schema.upstream))
-    core.log.info("conf  : ", core.json.delay_encode(conf))
+    core.log.info("conf: ", core.json.delay_encode(conf))
 
     local ok, err = apisix_upstream.check_upstream_conf(conf)
     if not ok then
@@ -98,6 +98,7 @@ function _M.get(id)
         return 500, {error_msg = err}
     end
 
+    utils.fix_count(res.body, id)
     return res.status, res.body
 end
 

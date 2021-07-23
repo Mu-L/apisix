@@ -27,7 +27,7 @@ title: prometheus
 
 | 名称         | 类型   | 必选项 | 默认值  | 有效值       | 描述                                                  |
 | ------------ | ------ | ------ | ------ | ------------ | ----------------------------------------------------- |
-| prefer_type  | boolean | 可选 | false   |             | 设置为`true`时，Prometheus 指标中将使用路由和服务的 `name` 而不是 `id`。 |
+| prefer_name  | boolean | 可选 | false   |             | 设置为`true`时，Prometheus 指标中将使用路由和服务的 `name` 而不是 `id`。 |
 
 ## 接口
 
@@ -80,7 +80,9 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 }'
 ```
 
-你可以使用浏览器打开 dashboard：`http://127.0.0.1:9080/apisix/dashboard/`，通过 web 界面来完成上面的操作，先增加一个 route：
+你可以使用 [APISIX Dashboard](https://github.com/apache/apisix-dashboard) 通过 web 界面来完成上面的操作。
+
+先增加一个 Route：
 
 ![](../../../assets/images/plugin/prometheus-1.png)
 
